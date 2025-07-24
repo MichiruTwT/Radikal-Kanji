@@ -10,7 +10,7 @@ Aplikasi sederhana untuk belajar Bahasa Jepang mencari Kanji menggunakan Radikal
 - **Delete**: Menghapus Kanji dari Daftar Favorit.
 
 ## Cara Menjalankan:
-1. Clone repository ini.
+1. Clone repository (https://github.com/MichiruTwT/Radikal-Kanji.git)
 2. Buka file `Radikal Kanji.html` di browser.
 
 ## Code:
