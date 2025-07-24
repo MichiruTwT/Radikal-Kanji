@@ -1,4 +1,4 @@
-# Radikal-Kanji
+# Radikal Kanji
 
 ## Deskripsi
 Aplikasi sederhana untuk belajar Bahasa Jepang mencari Kanji menggunakan Radikal.
