@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Radikal Kanji Finder</title>
+  <style>
+  :root {
+    --bg-color: #121212;
+    --container-bg: #1e1e1e;
+    --text-color: #f4f4f4;
+    --input-bg: #2a2a2a;
+    --border-color: #333;
+    --accent-color: #007acc;
+    --radical-bg: #3b3b3b;
+    --hover-bg: #555;
+    --reading-color: #ccc;
+  }
+  .light-theme {
+    --bg-color: #f9f9f9;
+    --container-bg: #ffffff;
+    --text-color: #121212;
+    --input-bg: #ffffff;
+    --border-color: #ccc;
+    --accent-color: #007acc;
+    --radical-bg: #e0e0e0;
+    --hover-bg: #d0d0d0;
+    --reading-color: #555;
+  }
+  body {
+    font-family: system-ui, sans-serif;
+    background: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 20px;
+    transition: background 0.3s, color 0.3s;
+  }
+  .container {
+    max-width: 720px;
+    margin: auto;
+    background: var(--container-bg);
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+    position: relative;
+  }
+  h1 {
+    margin-top: 0;
+    font-size: 1.75rem;
+    text-align: center;
+  }
+  .icon-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid var(--text-color);
+    cursor: pointer;
+    transition: background 0.3s, border 0.3s;
+  }
+  body:not(.light-theme) .icon-btn {
+    background: black;
+  }
+  .top-btns {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .toggle-btn {
+    flex: 1;
+    padding: 10px 18px;
+    font-size: 1rem;
+    border: none;
+    border-radius: 8px;
+    background: var(--accent-color);
+    color: #fff;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .toggle-btn.short {
+    flex: 0 0 auto;
+    padding: 10px 12px;
+  }
+  .toggle-btn:hover { opacity: 0.85; }
+  .radical-list {
+    display: none;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 16px;
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    padding: 8px;
+    border-radius: 8px;
+    background: var(--input-bg);
+  }
+  .radical-list.open { display: flex; }
+  .radical {
+    font-size: 1.2rem;
+    background: var(--radical-bg);
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+    color: var(--text-color);
+  }
+  .radical:hover { background: var(--hover-bg); }
+  .radical.selected {
+    background: var(--accent-color);
+    color: white;
+  }
+  .input-area {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .input-area input {
+    flex: 1;
+    padding: 10px 14px;
+    font-size: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--input-bg);
+    color: var(--text-color);
+  }
+  .search-btn {
+    padding: 10px 18px;
+    font-size: 1rem;
+    border: none;
+    border-radius: 8px;
+    background: var(--accent-color);
+    color: #fff;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .search-btn:hover { opacity: 0.85; }
+  #results, #favorites {
+    border-top: 1px solid var(--border-color);
+    margin-top: 20px;
+  }
+  .kanji-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .kanji-card:last-child { border-bottom: none; }
+  .kanji { font-size: 2.2rem; width: 48px; text-align: center; }
+  .meaning { font-weight: 500; }
+  .reading { color: var(--reading-color); font-size: 0.875rem; }
+  .favorite-btn {
+    cursor: pointer;
+    font-size: 1.4rem;
+    color: gold;
+    margin-left: auto;
+  }
+  .favorite-btn.inactive { color: var(--reading-color); }
+ </style>
+</head>
+<body>
+  <div class="container" id="app">
+    <button id="themeBtn" class="icon-btn" title="Toggle Theme"></button>
+    <h1>Radikal Kanji Finder</h1>
+    <div class="top-btns">
+      <button id="toggleRadicalsBtn" class="toggle-btn">Pilih Radikal ▼</button>
+      <button id="toggleFavoritesBtn" class="toggle-btn short">⭐</button>
+    </div>
+    <div class="radical-list" id="radicalList"></div>
+    <div class="input-area">
+      <input id="radicalInput" placeholder="Ketik atau pilih radikal (spasi untuk pisah)" />
+      <button id="searchBtn" class="search-btn">Cari</button>
+    </div>
+    <div id="results"></div>
+    <div id="favorites" style="display:none"></div>
+  </div>
+
+  <script>
+  const allRadicals = [ "亻","木","女","子","冖","艹","化","早","言","舌","田","力","日","月","十","氵",
+    "寺","本","扌","見","立","糸","且","氏","貝","目","雨","車","云","売","刂","可","由","心","亡","未","口","丁","灬","火","忄","耳","自", "土", "彳"];
+    const kanjiData = [
+    { char: "休", meaning: "istirahat", onyomi: "キュウ", kunyomi: "やす(む)", radicals: ["亻", "木"] },
+      { char: "好", meaning: "suka", onyomi: "コウ", kunyomi: "す(き)、この(む)", radicals: ["女", "子"] },
+      { char: "学", meaning: "belajar", onyomi: "ガク", kunyomi: "まな(ぶ)", radicals: ["子", "冖"] },
+      { char: "校", meaning: "sekolah", onyomi: "コウ", kunyomi: "-", radicals: ["木", "交"] },
+      { char: "林", meaning: "hutan kecil", onyomi: "リン", kunyomi: "はやし", radicals: ["木", "木"] },
+      { char: "森", meaning: "hutan besar", onyomi: "シン", kunyomi: "もり", radicals: ["木", "木", "木"] },
+      { char: "花", meaning: "bunga", onyomi: "カ", kunyomi: "はな", radicals: ["艹", "化"] },
+      { char: "草", meaning: "rumput", onyomi: "ソウ", kunyomi: "くさ", radicals: ["艹", "早"] },
+      { char: "話", meaning: "bicara", onyomi: "ワ", kunyomi: "はな(す)、はなし", radicals: ["言", "舌"] },
+      { char: "男", meaning: "laki-laki", onyomi: "ダン、ナン", kunyomi: "おとこ", radicals: ["田", "力"] },
+      { char: "明", meaning: "terang", onyomi: "メイ、ミョウ", kunyomi: "あか(るい)、あき(らか)", radicals: ["日", "月"] },
+      { char: "朝", meaning: "pagi", onyomi: "チョウ", kunyomi: "あさ", radicals: ["月", "十", "早"] },
+      { char: "海", meaning: "laut", onyomi: "カイ", kunyomi: "うみ", radicals: ["氵", "毎"] },
+      { char: "洗", meaning: "mencuci", onyomi: "セン", kunyomi: "あら(う)", radicals: ["氵", "先"] },
+      { char: "時", meaning: "waktu", onyomi: "ジ", kunyomi: "とき", radicals: ["日", "寺"] },
+      { char: "体", meaning: "tubuh", onyomi: "タイ", kunyomi: "からだ", radicals: ["亻", "本"] },
+      { char: "持", meaning: "memegang", onyomi: "ジ", kunyomi: "も(つ)", radicals: ["扌", "寺"] },
+      { char: "親", meaning: "orang tua", onyomi: "シン", kunyomi: "おや、した(しい)", radicals: ["見", "立", "木"] },
+      { char: "動", meaning: "bergerak", onyomi: "ドウ", kunyomi: "うご(く)", radicals: ["力", "重"] },
+      { char: "組", meaning: "kelompok", onyomi: "ソ", kunyomi: "くみ", radicals: ["糸", "且"] },
+      { char: "紙", meaning: "kertas", onyomi: "シ", kunyomi: "かみ", radicals: ["糸", "氏"] },
+      { char: "買", meaning: "membeli", onyomi: "バイ", kunyomi: "か(う)", radicals: ["貝", "目"] },
+      { char: "電", meaning: "listrik", onyomi: "デン", kunyomi: "-", radicals: ["雨", "田"] },
+      { char: "転", meaning: "berputar", onyomi: "テン", kunyomi: "ころ(がる)", radicals: ["車", "云"] },
+      { char: "読", meaning: "membaca", onyomi: "ドク", kunyomi: "よ(む)", radicals: ["言", "売"] },
+      { char: "帰", meaning: "pulang", onyomi: "キ", kunyomi: "かえ(る)", radicals: ["刂"] },
+      { char: "海", meaning: "laut", onyomi: "カイ", kunyomi: "うみ", radicals: ["水"] },
+      { char: "湖", meaning: "danau", onyomi: "コ", kunyomi: "みずうみ", radicals: ["水", "胡"] },
+      { char: "河", meaning: "sungai", onyomi: "カ", kunyomi: "かわ", radicals: ["水", "可"] },
+      { char: "洗", meaning: "mencuci", onyomi: "セン", kunyomi: "あら-う", radicals: ["水", "先"] },
+      { char: "油", meaning: "minyak", onyomi: "ユ", kunyomi: "あぶら", radicals: ["水", "由"] },
+      { char: "怒", meaning: "marah", onyomi: "ド", kunyomi: "いか(る), おこ(る)", radicals: ["心"] },
+      { char: "情", meaning: "perasaan", onyomi: "ジョウ", kunyomi: "なさ(け)", radicals: ["忄"] },
+      { char: "忘", meaning: "lupa", onyomi: "ボウ", kunyomi: "わす(れる)", radicals: ["心", "亡"] },
+      { char: "涙", meaning: "air mata", onyomi: "ルイ", kunyomi: "なみだ", radicals: ["氵"] },
+      { char: "語", meaning: "bahasa", onyomi: "ゴ", kunyomi: "かた(る)", radicals: ["言"] },
+      { char: "茶", meaning: "teh", onyomi: "チャ", kunyomi: "-", radicals: ["艹"] },
+      { char: "打", meaning: "memukul", onyomi: "ダ", kunyomi: "う(つ)", radicals: ["扌", "丁"] },
+      { char: "拾", meaning: "mengambil", onyomi: "シュウ", kunyomi: "ひろ(う)", radicals: ["扌"] },
+      { char: "味", meaning: "rasa", onyomi: "ミ", kunyomi: "あじ", radicals: ["口", "未"] },
+      { char: "呼", meaning: "memanggil", onyomi: "コ", kunyomi: "よ(ぶ)", radicals: ["口"] },
+      { char: "火", meaning: "api", onyomi: "カ", kunyomi: "ひ", radicals: ["火"] },
+      { char: "炎", meaning: "nyala api", onyomi: "エン", kunyomi: "ほのお", radicals: ["火", "火"] },
+      { char: "焼", meaning: "membakar", onyomi: "ショウ", kunyomi: "や(く)", radicals: ["火"] },
+      { char: "熱", meaning: "panas", onyomi: "ネツ", kunyomi: "あつ(い)", radicals: ["灬"] },
+      { char: "灯", meaning: "lampu", onyomi: "トウ", kunyomi: "ひ", radicals: ["火", "丁"] },
+      { char: "燃", meaning: "terbakar", onyomi: "ネン", kunyomi: "も(える)", radicals: ["火", "灬"] },
+      { char: "煙", meaning: "asap", onyomi: "エン", kunyomi: "けむり", radicals: ["火"] },
+      { char: "心", meaning: "hati", onyomi: "シン", kunyomi: "こころ", radicals: ["心"] },
+      { char: "思", meaning: "berpikir", onyomi: "シ", kunyomi: "おも(う)", radicals: ["田", "心"] },
+      { char: "息", meaning: "nafas", onyomi: "ソク", kunyomi: "いき", radicals: ["自", "心"] },
+      { char: "愛", meaning: "cinta", onyomi: "アイ", kunyomi: "-", radicals: ["冖", "心"] },
+      { char: "怖", meaning: "takut", onyomi: "フ", kunyomi: "こわ(い)", radicals: ["忄"] },
+      { char: "恥", meaning: "malu", onyomi: "チ", kunyomi: "は(じる)", radicals: ["耳", "心"] },
+      { char: "快", meaning: "nyaman", onyomi: "カイ", kunyomi: "こころよ(い)", radicals: ["忄"] },
+      { char: "目", meaning: "mata", onyomi: "モク", kunyomi: "め", radicals: ["目"] },
+      { char: "見", meaning: "melihat", onyomi: "ケン", kunyomi: "み(る)", radicals: ["目", "儿"] },
+      { char: "直", meaning: "lurus / langsung", onyomi: "チョク", kunyomi: "なお(す)", radicals: ["十", "目"] },
+      { char: "眠", meaning: "tidur", onyomi: "ミン", kunyomi: "ねむ(い)", radicals: ["目"] },
+      { char: "眺", meaning: "menatap", onyomi: "チョウ", kunyomi: "なが(める)", radicals: ["目"] },
+      { char: "糸", meaning: "benang", onyomi: "シ", kunyomi: "いと", radicals: ["糸"] },
+      { char: "終", meaning: "selesai", onyomi: "シュウ", kunyomi: "お(わる)", radicals: ["糸"] },
+      { char: "結", meaning: "mengikat", onyomi: "ケツ", kunyomi: "むす(ぶ)", radicals: ["糸"] },
+      { char: "細", meaning: "halus/kurus", onyomi: "サイ", kunyomi: "ほそ(い)", radicals: ["糸", "田"] },
+      { char: "続", meaning: "melanjutkan", onyomi: "ゾク", kunyomi: "つづ(く)", radicals: ["糸", "売"] },
+      { char: "未", meaning: "belum", onyomi: "ミ", kunyomi: "ま(だ)", radicals: ["未"] },
+      { char: "妹", meaning: "adik perempuan", onyomi: "マイ", kunyomi: "いもうと", radicals: ["女", "未"] },
+      { char: "立", meaning: "berdiri", onyomi: "リツ / リュウ", kunyomi: "た(つ)", radicals: ["立"] },
+      { char: "位", meaning: "posisi / peringkat", onyomi: "イ", kunyomi: "くらい", radicals: ["亻", "立"] },
+      { char: "音", meaning: "suara", onyomi: "オン", kunyomi: "おと / ね", radicals: ["立", "日"] },
+      { char: "意", meaning: "niat / maksud", onyomi: "イ", kunyomi: "-", radicals: ["立", "日", "心"] },
+      { char: "泣", meaning: "menangis", onyomi: "キュウ", kunyomi: "な(く)", radicals: ["氵", "立"] },
+      { char: "女", meaning: "perempuan", onyomi: "ジョ", kunyomi: "おんな・め", radicals: ["女"] },
+      { char: "姉", meaning: "kakak perempuan", onyomi: "シ", kunyomi: "あね・ねえ", radicals: ["女"] },
+      { char: "妻", meaning: "istri", onyomi: "サイ", kunyomi: "つま", radicals: ["女", "十"] },
+      { char: "娘", meaning: "anak perempuan", onyomi: "ジョウ", kunyomi: "むすめ", radicals: ["女"] },
+      { char: "妊", meaning: "hamil", onyomi: "ニン", kunyomi: "", radicals: ["女"] },
+      { char: "始", meaning: "memulai", onyomi: "シ", kunyomi: "はじ(める)・はじ(まる)", radicals: ["女"] },
+      { char: "嫌", meaning: "benci, tidak suka", onyomi: "ケン", kunyomi: "きら(う)・いや", radicals: ["女"] },
+      { char: "嬉", meaning: "senang, gembira", onyomi: "キ", kunyomi: "うれ(しい)", radicals: ["女"] },
+      { char: "子", meaning: "anak", onyomi: "シ・ス", kunyomi: "こ", radicals: ["子"] },
+      { char: "孫", meaning: "cucu", onyomi: "ソン", kunyomi: "まご", radicals: ["子"] },
+      { char: "存", meaning: "eksistensi", onyomi: "ソン・ゾン", kunyomi: "", radicals: ["子"] },
+      { char: "薬", meaning: "obat", onyomi: "ヤク", kunyomi: "くすり", radicals: ["艹"] },
+      { char: "葉", meaning: "daun", onyomi: "ヨウ", kunyomi: "は", radicals: ["艹",  "木"] },
+      { char: "菜", meaning: "sayuran", onyomi: "サイ", kunyomi: "な", radicals: ["艹"] },
+      { char: "若", meaning: "muda", onyomi: "ジャク", kunyomi: "わか(い)", radicals: ["艹",] },
+      { char: "土", meaning: "tanah", onyomi: "ド", kunyomi: "つち", radicals: ["土"] },
+      { char: "地", meaning: "bumi, tanah", onyomi: "チ・ジ", kunyomi: "", radicals: ["土"] },
+      { char: "場", meaning: "tempat, lapangan", onyomi: "ジョウ", kunyomi: "ば", radicals: ["土"] },
+      { char: "社", meaning: "kuil Shinto, perusahaan", onyomi: "シャ", kunyomi: "やしろ", radicals: [ "土"] },
+      { char: "坂", meaning: "lereng, tanjakan", onyomi: "ハン", kunyomi: "さか", radicals: ["土"] },
+      { char: "売", meaning: "menjual", onyomi: "バイ", kunyomi: "う(る)", radicals: ["売"] },
+      { char: "寺", meaning: "kuil Buddha", onyomi: "ジ", kunyomi: "てら", radicals: ["寺"] },
+      { char: "待", meaning: "menunggu", onyomi: "タイ", kunyomi: "ま(つ)", radicals: ["彳", "寺"] },
+ 　　 { char: "後", meaning: "belakang, setelah", onyomi: "ゴ・コウ", kunyomi: "うし(ろ)・あと", radicals: ["彳"] },
+ 　　 { char: "彼", meaning: "dia", onyomi: "ヒ", kunyomi: "かれ・かの", radicals: ["彳"] },
+ 　　 { char: "従", meaning: "mengikuti, mematuhi", onyomi: "ジュウ・ショウ・ジュ", kunyomi: "したが(う)", radicals: ["彳"] },
+ 　　 { char: "得", meaning: "mendapatkan", onyomi: "トク", kunyomi: "え(る)・う(る)", radicals: ["彳"] }
+];
+
+    const radicalList = document.getElementById('radicalList');
+    const toggleBtn = document.getElementById('toggleRadicalsBtn');
+    const toggleFavBtn = document.getElementById('toggleFavoritesBtn');
+    const radicalInput = document.getElementById('radicalInput');
+    const searchBtn = document.getElementById('searchBtn');
+    const resultsEl = document.getElementById('results');
+    const favoritesEl = document.getElementById('favorites');
+    const themeBtn = document.getElementById('themeBtn');
+
+    let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+    let lastResults = [];
+
+    allRadicals.forEach(radical => {
+      const el = document.createElement('span');
+      el.className = 'radical';
+      el.textContent = radical;
+      el.onclick = () => {
+        const inputRadicals = radicalInput.value.trim().split(/\s+/).filter(Boolean);
+        const idx = inputRadicals.indexOf(radical);
+        if (idx >= 0) {
+          inputRadicals.splice(idx, 1);
+          el.classList.remove('selected');
+        } else {
+          inputRadicals.push(radical);
+          el.classList.add('selected');
+        }
+        radicalInput.value = inputRadicals.join(' ');
+      };
+      radicalList.appendChild(el);
+    });
+
+    toggleBtn.onclick = () => {
+      radicalList.classList.toggle('open');
+      toggleBtn.textContent = radicalList.classList.contains('open') ? 'Sembunyikan Radikal ▲' : 'Pilih Radikal ▼';
+    };
+
+    toggleFavBtn.onclick = () => {
+      favoritesEl.style.display = favoritesEl.style.display === 'none' ? 'block' : 'none';
+      renderFavorites();
+    };
+
+    themeBtn.onclick = () => document.body.classList.toggle('light-theme');
+
+    function toggleFavorite(kanji) {
+      const index = favorites.findIndex(f => f.char === kanji.char);
+      if (index >= 0) {
+        favorites.splice(index, 1);
+      } else {
+        favorites.push({...kanji, note: ""});
+      }
+      localStorage.setItem('favorites', JSON.stringify(favorites));
+      renderResults(lastResults);
+      renderFavorites();
+    }
+
+    function syncHighlights(radicals) {
+      Array.from(radicalList.children).forEach(span => {
+        const r = span.textContent;
+        span.classList.toggle('selected', radicals.includes(r));
+      });
+    }
+
+    function searchKanji() {
+      const radicals = radicalInput.value.trim().split(/\s+/).filter(Boolean);
+      syncHighlights(radicals);
+      if (!radicals.length) return renderResults([]);
+      const matches = kanjiData.filter(k => radicals.every(r => k.radicals.includes(r)));
+      renderResults(matches);
+    }
+
+    function renderResults(list) {
+      lastResults = list;
+      resultsEl.innerHTML = '';
+      if (!list.length) {
+        resultsEl.innerHTML
+        return;
+      }
+      list.forEach(k => {
+        const isFav = favorites.some(f => f.char === k.char);
+        const card = document.createElement('div');
+        card.className = 'kanji-card';
+        card.innerHTML = `
+          <span class="kanji">${k.char}</span>
+          <div>
+            <div class="meaning">${k.meaning}</div>
+            <div class="reading">${k.onyomi} / ${k.kunyomi}</div>
+          </div>
+          <span class="favorite-btn ${isFav ? '' : 'inactive'}">★</span>
+        `;
+        card.querySelector('.favorite-btn').onclick = () => toggleFavorite(k);
+        resultsEl.appendChild(card);
+      });
+    }
+
+    function renderFavorites() {
+      favoritesEl.innerHTML = '<h2>Favorit Saya</h2>';
+      if (!favorites.length) {
+        favoritesEl.innerHTML += '<p>Belum ada favorit.</p>';
+        return;
+      }
+      favorites.forEach((k, index) => {
+        const card = document.createElement('div');
+        card.className = 'kanji-card';
+        card.innerHTML = `
+          <span class="kanji">${k.char}</span>
+          <div>
+            <div class="meaning">${k.meaning}</div>
+            <div class="reading">${k.onyomi} / ${k.kunyomi}</div>
+            <div>
+              <span>Catatan:</span>
+              <input type="text" value="${k.note || ''}" data-index="${index}" class="note-input" placeholder="Tambahkan catatan..." />
+            </div>
+          </div>
+          <span class="favorite-btn" onclick='toggleFavorite(${JSON.stringify(k)})'>★</span>
+        `;
+        favoritesEl.appendChild(card);
+      });
+
+      // Update Note on Change (CRUD - Update)
+      const noteInputs = favoritesEl.querySelectorAll('.note-input');
+      noteInputs.forEach(input => {
+        input.addEventListener('change', (e) => {
+          const idx = e.target.dataset.index;
+          favorites[idx].note = e.target.value;
+          localStorage.setItem('favorites', JSON.stringify(favorites));
+        });
+      });
+    }
+
+    searchBtn.onclick = searchKanji;
+    radicalInput.onkeyup = e => { if (e.key === 'Enter') searchKanji(); };
+    renderFavorites();
+  </script>
+</body>
+</html>
