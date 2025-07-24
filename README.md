@@ -16,4 +16,3 @@ Aplikasi sederhana untuk belajar Bahasa Jepang mencari Kanji menggunakan Radikal
 ## Code:
 - HTML
 - CSS
-- JavaScript (LocalStorage)
